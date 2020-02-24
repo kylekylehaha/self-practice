@@ -85,12 +85,8 @@ int main(){
     printf("before mergesort\n");
     dump(list);
     list1 = mergeSort_single(list);
-    //list2 = mergeSort_double(list);
     printf("list:\n");
     dump(list);
     printf("list1:\n");
     dump(list1);
-    printf("\n");
-    printf("list2:\n");
-    //dump(list2);
 }
