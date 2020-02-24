@@ -5,7 +5,6 @@
 
 typedef struct node{
     int value;
-    struct node* prev;
     struct node* next; 
 }List;
 
@@ -26,13 +25,12 @@ void dump(List* head){
 void create_List(List** ref, int value){
     List* node = malloc(sizeof(List));
     node->value = value;
-    node->next = node->prev = NULL;
+    node->next  = NULL;
     if(!(*ref)){
         *ref = node;
     }
     else{
         node->next = *ref;
-        (*ref)->prev = node;
         (*ref) = node;
     }
     return;
@@ -68,44 +66,6 @@ List* mergeSort_single(List* start){
             }
             else{
                 merge->next = right;
-                merge = merge->next;
-            }
-            right = right->next;
-        }
-    }
-    return start;
-}
-
-List* mergeSort_double(List* start){
-    if (!start || !start->next)
-        return start;
-    List *left, *right;
-    left = start;
-    right = start->next;
-    left->next = NULL;
-
-    left = mergeSort_double(left);
-    right = mergeSort_double(right);
-
-    for (List* merge = NULL; left || right;){
-        if (!right || (left && left->value <= right->value)){
-            if (!merge){
-                merge = start = left;
-            }
-            else{
-                merge->next = left;
-                merge->prev = left->prev;
-                merge = merge->next;
-            }
-            left = left->next;
-        }
-        else{
-            if(!merge){
-                merge = start = right;
-            }
-            else{
-                merge->next = right;
-                merge->prev = right->prev;
                 merge = merge->next;
             }
             right = right->next;
