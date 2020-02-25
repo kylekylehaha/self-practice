@@ -1,4 +1,3 @@
-//merge sort with single & double linked_list
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -9,8 +8,9 @@ typedef struct node{
 }List;
 
 void dump(List* head){
-    if(!head || !head->next)
+    if(!head)
         return;
+    
 
     printf("%d",head->value);
     List* temp = head->next;
@@ -36,7 +36,6 @@ void create_List(List** ref, int value){
     return;
 }
 
-
 List* mergeSort_single(List* start){
     if(!start || !start->next)
         return start;
@@ -46,7 +45,7 @@ List* mergeSort_single(List* start){
     right = start->next;
     left->next = NULL;
 
-    left = mergeSort_single(left);
+    left = mergeSort_single(left);    
     right = mergeSort_single(right);
 
     for (List* merge = NULL; left || right;){
@@ -77,7 +76,7 @@ List* mergeSort_single(List* start){
 int main(){
     int i;
     List *list = NULL;
-    List *list1, *list2;
+    List *list1, *list2, *ori_list;
     srand(time(NULL));
     for (i=0;i<20;i++){
         create_List(&list, rand()%100);
@@ -85,8 +84,6 @@ int main(){
     printf("before mergesort\n");
     dump(list);
     list1 = mergeSort_single(list);
-    printf("list:\n");
-    dump(list);
-    printf("list1:\n");
+    printf("after mergesort\n");
     dump(list1);
 }
