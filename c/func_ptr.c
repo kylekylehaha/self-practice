@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+typedef int (*calculate)(int, int);
 
 int add(int a, int b)
 {
@@ -21,9 +22,14 @@ int divide(int a, int b)
 	return a / b;
 }
 
-int operation(int a, int b, int (*operation)(int, int))
+//int operation(int a, int b, int (*operation)(int, int))
+//{
+//	return operation(a, b);
+//}
+
+int operation(int a, int b, calculate calc)
 {
-	return operation(a, b);
+	return calc(a, b);
 }
 
 int main(){
