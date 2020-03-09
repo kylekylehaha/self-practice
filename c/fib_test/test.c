@@ -4,35 +4,34 @@
 
 unsigned int clz(long long k)
 {
-	unsigned int n;
-	long long clz = k;
+	unsigned int n = 0;
 
 	if (k == 0)
 		return 0;
 	
-	if (clz <= 0x00000000FFFFFFFF) {
+	if (k <= 0x00000000FFFFFFFF) {
         n += 32;
-        clz <<= 32;
+        k <<= 32;
     }
-    if (clz <= 0x0000FFFFFFFFFFFF) {
+    if (k <= 0x0000FFFFFFFFFFFF) {
         n += 16;
-        clz <<= 16;
+        k <<= 16;
     }
-    if (clz <= 0x00FFFFFFFFFFFFFF) {
+    if (k <= 0x00FFFFFFFFFFFFFF) {
         n += 8;
-        clz <<= 8;
+        k <<= 8;
     }
-    if (clz <= 0x0FFFFFFFFFFFFFFF) {
+    if (k <= 0x0FFFFFFFFFFFFFFF) {
         n += 4;
-        clz <<= 4;
+        k <<= 4;
     }
-    if (clz <= 0x3FFFFFFFFFFFFFFF) {
+    if (k <= 0x3FFFFFFFFFFFFFFF) {
         n += 2;
-        clz <<= 2;
+        k <<= 2;
     }
-    if (clz <= 0x7FFFFFFFFFFFFFFF) {
+    if (k <= 0x7FFFFFFFFFFFFFFF) {
         n += 1;
-        clz <<= 1;
+        k <<= 1;
     }
 
 	return n;
