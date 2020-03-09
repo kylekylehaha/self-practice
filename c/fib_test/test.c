@@ -11,27 +11,21 @@ unsigned int clz(long long k)
 	
 	if (k <= 0x00000000FFFFFFFF) {
         n += 32;
-        k <<= 32;
     }
     if (k <= 0x0000FFFFFFFFFFFF) {
         n += 16;
-        k <<= 16;
     }
     if (k <= 0x00FFFFFFFFFFFFFF) {
         n += 8;
-        k <<= 8;
     }
     if (k <= 0x0FFFFFFFFFFFFFFF) {
         n += 4;
-        k <<= 4;
     }
     if (k <= 0x3FFFFFFFFFFFFFFF) {
         n += 2;
-        k <<= 2;
     }
     if (k <= 0x7FFFFFFFFFFFFFFF) {
         n += 1;
-        k <<= 1;
     }
 
 	return n;
