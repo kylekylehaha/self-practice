@@ -1,110 +1,68 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
+#include "bigN.h"
 
-unsigned int clz(long long k)
+static void bigN_add(bigN a, bigN b, bigN *result)
 {
-	unsigned int n = 0;
-
-	if (k == 0)
-		return 0;
-	
-	if (k <= 0x00000000FFFFFFFF) {
-        n += 32;
+    memset(result, 0, sizeof(bigN));
+    long long carry = 0;
+    for (int i = 0; i < part_num; i++) {
+        long long tmp = carry + a.part[i] + b.part[i];
+        result->part[i] = tmp % BASE;
+        carry = tmp / BASE;
     }
-    if (k <= 0x0000FFFFFFFFFFFF) {
-        n += 16;
-    }
-    if (k <= 0x00FFFFFFFFFFFFFF) {
-        n += 8;
-    }
-    if (k <= 0x0FFFFFFFFFFFFFFF) {
-        n += 4;
-    }
-    if (k <= 0x3FFFFFFFFFFFFFFF) {
-        n += 2;
-    }
-    if (k <= 0x7FFFFFFFFFFFFFFF) {
-        n += 1;
-    }
-
-	return n;
-
 }
 
-unsigned long long fib_fast_doubling_clz(long long k)
+static void bigN_print(bigN buf)
 {
-    unsigned int digit = 0;
-    int saved = k;
-    while (k) {
-        digit++;
-        k /= 2;
+    int i = part_num - 1;
+    while ((i >= 0) && (buf.part[i] == 0))
+        i--;
+    if (i  < 0) {
+        printf("0");
+        return;
     }
-    k = saved;
-	
-	unsigned int n = clz(k);
-	k << n;
+    printf("%llu", buf.part[i--]);
+    while(i >=0) {
+        printf("%08llu", buf.part[i]);
+        i--;
+    }
+}
 
-    unsigned long long a, b;
-    a = 0;
-    b = 1;
-    for (unsigned int i = digit; i > 0; i--) {
-        unsigned long long t1, t2;
-        t1 = a * (2 * b - a);
-        t2 = b * b + a * a;
-        a = t1;
-        b = t2;
-        if (k & (1 << (i - 1))) {
-            t1 = a + b;
-            a = b;
-            b = t1;
-            // k &= ~(1 << (i - 1));
-        }
+static void bigN_assign(bigN *a, bigN *b)
+{
+    for(int i = 0; i < part_num; i++) {
+        a->part[i] = b->part[i];
     }
-    return a;
+    return;
 }
 
 
-unsigned long long fib_fast_doubling(long long k)
+static void fib_sequence(long long k, bigN *result)
 {
-    unsigned int digit = 0;
-    int saved = k;
-    while (k) {
-        digit++;
-        k /= 2;
+   {
+    if (k == 0) {
+        memset(result, 0, sizeof(bigN));
+        return ;
     }
-    k = saved;
-    unsigned long long a, b;
-    a = 0;
-    b = 1;
-    for (unsigned int i = digit; i > 0; i--) {
-        unsigned long long t1, t2;
-        t1 = a * (2 * b - a);
-        t2 = b * b + a * a;
-        a = t1;
-        b = t2;
-        if (k & (1 << (i - 1))) {
-            t1 = a + b;
-            a = b;
-            b = t1;
-            // k &= ~(1 << (i - 1));
-        }
-    }
-    return a;
-}
-
-unsigned long long fib_sequence(long long k)
-{
-    unsigned long long f[k + 2];
-
-    f[0] = 0;
-    f[1] = 1;
-
+    bigN *f0, *f1, *tmp;
+    f0 = malloc(sizeof(bigN));
+    f1 = malloc(sizeof(bigN));
+    memset(f0, 0, sizeof(bigN));
+    memset(f1, 0, sizeof(bigN));
+    f1->part[0] = 1;
     for (int i = 2; i <= k; i++) {
-        f[i] = f[i - 1] + f[i - 2];
+        bigN_add(*f0, *f1, f0);
+        tmp = f0;
+        f0 = f1;
+        f1 = tmp;
     }
 
-    return f[k];
+    bigN_assign(result, f1);
+    return;
+}
 }
 
 unsigned int diff_in_ns(struct timespec t1, struct timespec t2)
@@ -127,42 +85,24 @@ int main()
 	FILE *fd_clz = fopen("test_fd_clz.txt", "wb+");
 
 	unsigned long long result = 0;
-    int offset = 92; /* TODO: try test something bigger than the limit */
+    int offset = 100; /* TODO: try test something bigger than the limit */
 
-	printf("use fib_fast_doubling now\n");
-    for (int i = 0; i <= offset; i++) {
+    for (long long i = 0; i <= offset; i++) {
+        bigN output;
         struct timespec start, end;
         
+        //printf("offset is %d\n", i);
 		clock_gettime(CLOCK_REALTIME, &start);
-		result = fib_fast_doubling((long long)i);
+		fib_sequence(i, &output);
         clock_gettime(CLOCK_REALTIME, &end);
-        fprintf(fd, "%d %u\n", i, diff_in_ns(start, end));
+        //fprintf(fseq, "%d %u\n", i, diff_in_ns(start, end));
 		
-		printf("offset: %d, fib is %llu\n", i, result);
-    }
-
-	printf("use fib_seq now\n");
-    for (int i = 0; i <= offset; i++) {
-        struct timespec start, end;
+		printf("offset: %lld, ",i);
         
-		clock_gettime(CLOCK_REALTIME, &start);
-		result = fib_sequence((long long)i);
-        clock_gettime(CLOCK_REALTIME, &end);
-        fprintf(fseq, "%d %u\n", i, diff_in_ns(start, end));
-		
-		printf("offset: %d, fib is %llu\n", i, result);
-    }
-
-	printf("use fib_fd_clz now\n");
-    for (int i = 0; i <= offset; i++) {
-        struct timespec start, end;
         
-		clock_gettime(CLOCK_REALTIME, &start);
-		result = fib_fast_doubling_clz((long long)i);
-        clock_gettime(CLOCK_REALTIME, &end);
-        fprintf(fd_clz, "%d %u\n", i, diff_in_ns(start, end));
-		
-		printf("offset: %d, fib is %llu\n", i, result);
+        bigN_print(output);
+        printf("\n");
+        
     }
 
 	fclose(fd_clz);
