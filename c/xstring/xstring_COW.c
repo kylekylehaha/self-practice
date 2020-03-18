@@ -117,22 +117,19 @@ xs *xs_concat(xs *string, const xs *prefix, const xs *suffix)
     char *pre = xs_data(prefix), *suf = xs_data(suffix),
          *data = xs_data(string);
 
-    if (size + pres + sufs <= capacity) {
-        if (string->flag1 && string->refcnt && *(string->refcnt) > 0) {
-            /* malloc a new memory */
+    if (size + pres + sufs <=  16) {
+        if(string->flag1 && string->refcnt && *(string->refcnt) > 0){
+            /* create new space */
             *(string->refcnt) -= 1;
-            string->flag1 = 0;
-            data = string->ptr = (char*)malloc(sizeof(char) * capacity);
-            if (!data || string->ptr)
-                printf("malloc fail\n");
-            memset(data, 0, sizeof(char) * capacity);
-            if (*(string->refcnt) == 0) {
+            string->flag1 = false;
+            data = string->ptr = (char*)malloc(sizeof(char) * 16);
+            if(*(string->refcnt) == 0){
                 free(string->refcnt);
                 string->refcnt = NULL;
             }
-        }
-        memmove(data + pres, data, size);
-        memcpy(data, pre, pres - 1);
+        }        
+        memcpy(data, pre, pres);
+        memcpy(data + pres, data, size);
         memcpy(data + pres + size, suf, sufs + 1);
         string->space_left = 15 - (size + pres + sufs);
     } else {
@@ -142,15 +139,16 @@ xs *xs_concat(xs *string, const xs *prefix, const xs *suffix)
         memcpy(tmpdata + pres, data, size);
         memcpy(tmpdata, pre, pres);
         memcpy(tmpdata + pres + size, suf, sufs + 1);
-        if (string->flag1 && string->refcnt && *(string->refcnt) > 0) {
+        if(string->flag1 && string->refcnt && *(string->refcnt) > 0){
             *(string->refcnt) -= 1;
-            if (*(string->refcnt) == 0) {
+            if(*(string->refcnt) == 0){
                 free(string->refcnt);
                 string->refcnt = NULL;
             }
-        } else {
+        }else {
             xs_free(string);
         }
+        tmps.flag1 = false;
         *string = tmps;
         string->size = size + pres + sufs;
     }
@@ -234,12 +232,12 @@ xs *xs_cpy(xs *dest, xs *src)
 
 int main()
 {
-    xs prefix = *xs_tmp("(((ffss"), suffix = *xs_tmp(")))");
-    xs string = *xs_new(&string,"aaaafoobarbarxxxx");
-    xs string_cpy = *xs_cpy(&xs_literal_empty(),&string);
+    xs prefix = *xs_tmp("((((("), suffix = *xs_tmp(")))))");
+    xs string = *xs_new(&string,"foobarbar");
+    xs string_cpy  = *xs_cpy(&xs_literal_empty(),&string);
+    xs string_cpy1 = *xs_cpy(&xs_literal_empty(),&string);
+    xs string_cpy2 = *xs_cpy(&xs_literal_empty(),&string);
 
-    printf("string->capacity %zu\n",xs_capacity(&string));
-    printf("string_cpy->capacity %zu\n",xs_capacity(&string_cpy));
     xs_concat(&string_cpy, &prefix, &suffix);
    
 
