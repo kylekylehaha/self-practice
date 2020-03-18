@@ -118,16 +118,7 @@ xs *xs_concat(xs *string, const xs *prefix, const xs *suffix)
          *data = xs_data(string);
 
     if (size + pres + sufs <=  16) {
-        if(string->flag1 && string->refcnt && *(string->refcnt) > 0){
-            /* create new space */
-            *(string->refcnt) -= 1;
-            string->flag1 = false;
-            data = string->ptr = (char*)malloc(sizeof(char) * 16);
-            if(*(string->refcnt) == 0){
-                free(string->refcnt);
-                string->refcnt = NULL;
-            }
-        }        
+        data = string->ptr = (char*)malloc(sizeof(char) * 16);
         memcpy(data, pre, pres);
         memcpy(data + pres, data, size);
         memcpy(data + pres + size, suf, sufs + 1);
@@ -233,7 +224,7 @@ xs *xs_cpy(xs *dest, xs *src)
 int main()
 {
     xs prefix = *xs_tmp("((((("), suffix = *xs_tmp(")))))");
-    xs string = *xs_new(&string,"foobarbar");
+    xs string = *xs_new(&string,"aaaaaafoobarbarsssssss");
     xs string_cpy  = *xs_cpy(&xs_literal_empty(),&string);
     xs string_cpy1 = *xs_cpy(&xs_literal_empty(),&string);
     xs string_cpy2 = *xs_cpy(&xs_literal_empty(),&string);
@@ -242,6 +233,8 @@ int main()
    
 
     printf("[%s] : %2zu\n", xs_data(&string_cpy), xs_size(&string_cpy));
+    printf("%p\n",string_cpy.data);
     printf("[%s] : %2zu\n", xs_data(&string), xs_size(&string));
+    printf("%p\n",string.data);
     printf("%d\n",*string.refcnt);
 }
