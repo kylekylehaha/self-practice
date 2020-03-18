@@ -176,8 +176,17 @@ xs *xs_trim(xs *x, const char *trimset)
      * Do not reallocate immediately. Instead, reuse it as possible.
      * Do not shrink to in place if < 16 bytes.
      */
-    memmove(orig, dataptr, slen);
+    
     /* do not dirty memory unless it is needed */
+    if (x->flag1 && x->refcnt && *(x->refcnt) > 0) {
+        x->ptr = orig = (char*)malloc(sizeof(char) * strlen(x->ptr) + 1);
+        *(x->refcnt) -= 1;
+        if (*(x->refcnt) == 0) {
+            free(x->refcnt);
+            x->refcnt = NULL;
+        }
+    }
+    memmove(orig, dataptr, slen);
     if (orig[slen])
         orig[slen] = 0;
 
@@ -224,17 +233,14 @@ xs *xs_cpy(xs *dest, xs *src)
 int main()
 {
     xs prefix = *xs_tmp("((((("), suffix = *xs_tmp(")))))");
-    xs string = *xs_new(&string,"aaaaaafoobarbarsssssss");
-    xs string_cpy  = *xs_cpy(&xs_literal_empty(),&string);
-    xs string_cpy1 = *xs_cpy(&xs_literal_empty(),&string);
-    xs string_cpy2 = *xs_cpy(&xs_literal_empty(),&string);
+    xs string = *xs_new(&string,"foobarbar");
+   
 
-    xs_concat(&string_cpy, &prefix, &suffix);
+    xs_concat(&string, &prefix, &suffix);
+     xs string_cpy  = *xs_cpy(&xs_literal_empty(),&string);
+    xs_trim(&string_cpy, "(");
    
 
     printf("[%s] : %2zu\n", xs_data(&string_cpy), xs_size(&string_cpy));
-    printf("%p\n",string_cpy.data);
     printf("[%s] : %2zu\n", xs_data(&string), xs_size(&string));
-    printf("%p\n",string.data);
-    printf("%d\n",*string.refcnt);
 }
