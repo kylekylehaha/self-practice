@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 typedef union {
 
@@ -22,11 +23,9 @@ typedef union {
     /* heap allocated */
     struct {
         char *ptr;
-        /* supports strings up to 2^54 - 1 bytes */
         size_t size : 54,
-            /* capacity is always a power of 2 (unsigned)-1 */
-            capacity : 6;
-        /* the last 4 bits are important flags */
+        capacity : 6;
+        int *refcnt;
     };
 } xs;
 
@@ -59,6 +58,7 @@ xs *xs_new(xs *x, const void *p)
         x->is_ptr = true;
         x->ptr = malloc((size_t) 1 << x->capacity);
         memcpy(x->ptr, p, len);
+        x->refcnt = NULL;
     } else {
         memcpy(x->data, p, len);
         x->space_left = 15 - (len - 1);
@@ -118,8 +118,21 @@ xs *xs_concat(xs *string, const xs *prefix, const xs *suffix)
          *data = xs_data(string);
 
     if (size + pres + sufs <= capacity) {
+        if (string->flag1 && string->refcnt && *(string->refcnt) > 0) {
+            /* malloc a new memory */
+            *(string->refcnt) -= 1;
+            string->flag1 = 0;
+            data = string->ptr = (char*)malloc(sizeof(char) * capacity);
+            if (!data || string->ptr)
+                printf("malloc fail\n");
+            memset(data, 0, sizeof(char) * capacity);
+            if (*(string->refcnt) == 0) {
+                free(string->refcnt);
+                string->refcnt = NULL;
+            }
+        }
         memmove(data + pres, data, size);
-        memcpy(data, pre, pres);
+        memcpy(data, pre, pres - 1);
         memcpy(data + pres + size, suf, sufs + 1);
         string->space_left = 15 - (size + pres + sufs);
     } else {
@@ -129,7 +142,15 @@ xs *xs_concat(xs *string, const xs *prefix, const xs *suffix)
         memcpy(tmpdata + pres, data, size);
         memcpy(tmpdata, pre, pres);
         memcpy(tmpdata + pres + size, suf, sufs + 1);
-        xs_free(string);
+        if (string->flag1 && string->refcnt && *(string->refcnt) > 0) {
+            *(string->refcnt) -= 1;
+            if (*(string->refcnt) == 0) {
+                free(string->refcnt);
+                string->refcnt = NULL;
+            }
+        } else {
+            xs_free(string);
+        }
         *string = tmps;
         string->size = size + pres + sufs;
     }
@@ -180,9 +201,8 @@ xs *xs_trim(xs *x, const char *trimset)
 #undef set_bit
 }
 
-#include <stdio.h>
 
-xs *xs_copy(xs *dest, xs *src)
+xs *xs_cpy(xs *dest, xs *src)
 {
 	if (xs_is_ptr(src)) {
         /* string is on heap */
@@ -190,11 +210,20 @@ xs *xs_copy(xs *dest, xs *src)
         dest->ptr = src->ptr;
         dest->flag1 = 1;
         dest->size = xs_size(src);
+        dest->capacity = src->capacity;
+        if (!src->refcnt) {
+            dest->refcnt = src->refcnt = (int *)malloc(sizeof(int));
+            *(dest->refcnt) = 1;
+        } else {
+            dest->refcnt = src->refcnt;
+            *(dest->refcnt) += 1;
+        }
     } else {
         /* string is on stack */
         for (int i = 0;i < 16; i++) {
             dest->data[i] = src->data[i];
         }
+        //memcpy(dest->data, src->data, xs_size(src));
         dest->is_ptr = 0;
         dest->flag1 = 0;
         dest->space_left = 15 - xs_size(src);
@@ -205,13 +234,16 @@ xs *xs_copy(xs *dest, xs *src)
 
 int main()
 {
-    xs string = *xs_tmp("test foobarbar");
-    xs prefix = *xs_tmp("(((((");
-    xs suffix = *xs_tmp(")))))");
+    xs prefix = *xs_tmp("(((ffss"), suffix = *xs_tmp(")))");
+    xs string = *xs_new(&string,"aaaafoobarbarxxxx");
+    xs string_cpy = *xs_cpy(&xs_literal_empty(),&string);
 
-    xs_concat(&string, &prefix, &suffix);
-    printf("[%s], %2zu\n",xs_data(&string), xs_size(&string));
-    printf("copy is");
-    xs copy = *xs_copy(&copy, &string);
-    printf("[%s], %2zu\n",xs_data(&copy), xs_size(&copy));
+    printf("string->capacity %zu\n",xs_capacity(&string));
+    printf("string_cpy->capacity %zu\n",xs_capacity(&string_cpy));
+    xs_concat(&string_cpy, &prefix, &suffix);
+   
+
+    printf("[%s] : %2zu\n", xs_data(&string_cpy), xs_size(&string_cpy));
+    printf("[%s] : %2zu\n", xs_data(&string), xs_size(&string));
+    printf("%d\n",*string.refcnt);
 }
