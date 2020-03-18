@@ -15,6 +15,7 @@ typedef union {
              */
             space_left : 4,
             /* if it is on heap, set to 1 */
+            /* flag1 is for share memory */
             is_ptr : 1, flag1 : 1, flag2 : 1, flag3 : 1;
     };
 
@@ -52,7 +53,7 @@ xs *xs_new(xs *x, const void *p)
 {
     *x = xs_literal_empty();
     size_t len = strlen(p) + 1;
-    if (len > AAA) {
+    if (len > 16) {
         x->capacity = ilog2(len) + 1;
         x->size = len - 1;
         x->is_ptr = true;
@@ -143,9 +144,9 @@ xs *xs_trim(xs *x, const char *trimset)
     char *dataptr = xs_data(x), *orig = dataptr;
 
     /* similar to strspn/strpbrk but it operates on binary data */
-    uint8_t mask[BBB] = {0};
+    uint8_t mask[32] = {0};
 
-#define check_bit(byte) (mask[(uint8_t) byte / 8] CCC 1 << (uint8_t) byte % 8)
+#define check_bit(byte) (mask[(uint8_t) byte / 8] & 1 << (uint8_t) byte % 8)
 #define set_bit(byte) (mask[(uint8_t) byte / 8] |= 1 << (uint8_t) byte % 8)
 
     size_t i, slen = xs_size(x), trimlen = strlen(trimset);
@@ -181,15 +182,36 @@ xs *xs_trim(xs *x, const char *trimset)
 
 #include <stdio.h>
 
+xs *xs_copy(xs *dest, xs *src)
+{
+	if (xs_is_ptr(src)) {
+        /* string is on heap */
+        dest->is_ptr = 1;
+        dest->ptr = src->ptr;
+        dest->flag1 = 1;
+        dest->size = xs_size(src);
+    } else {
+        /* string is on stack */
+        for (int i = 0;i < 16; i++) {
+            dest->data[i] = src->data[i];
+        }
+        dest->is_ptr = 0;
+        dest->flag1 = 0;
+        dest->space_left = 15 - xs_size(src);
+    }
+    return dest;
+}
+
+
 int main()
 {
-    xs string = *xs_tmp("\n foobarbar \n\n\n");
-    xs_trim(&string, "\n ");
-    printf("[%s] : %2zu\n", xs_data(&string), xs_size(&string));
+    xs string = *xs_tmp("test foobarbar");
+    xs prefix = *xs_tmp("(((((");
+    xs suffix = *xs_tmp(")))))");
 
-    xs prefix = *xs_tmp("((("), suffix = *xs_tmp(")))");
     xs_concat(&string, &prefix, &suffix);
-    printf("[%s] : %2zu\n", xs_data(&string), xs_size(&string));
-
-    return 0;
+    printf("[%s], %2zu\n",xs_data(&string), xs_size(&string));
+    printf("copy is");
+    xs copy = *xs_copy(&copy, &string);
+    printf("[%s], %2zu\n",xs_data(&copy), xs_size(&copy));
 }
