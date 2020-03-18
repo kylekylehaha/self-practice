@@ -229,18 +229,38 @@ xs *xs_cpy(xs *dest, xs *src)
     return dest;
 }
 
+char *xs_strtok(char *x, const char *delimit)
+{
+    static  char *lastToken = NULL; /* UNSAFE SHARED STATE! */
+    char *tmp;
+    /* Skip leading delimiters if new string. */
+    if (x == NULL) {
+        x = lastToken;
+        if (x == NULL)         /* End of story */
+            return NULL;
+    } else {
+        x += strspn(x, delimit);
+    }
+    /* Find end of segment */
+    tmp = strpbrk(x, delimit);
+    if (tmp) {
+        /* Found another delimiter, split string and save state. */
+        *tmp = '\0';
+        lastToken = tmp + 1;
+    } else {
+        /* Last segment, remember that. */
+        lastToken = NULL;
+    }
+    return x;
+}
 
 int main()
 {
-    xs prefix = *xs_tmp("((((("), suffix = *xs_tmp(")))))");
-    xs string = *xs_new(&string,"foobarbar");
-   
-
-    xs_concat(&string, &prefix, &suffix);
-     xs string_cpy  = *xs_cpy(&xs_literal_empty(),&string);
-    xs_trim(&string_cpy, "(");
-   
-
-    printf("[%s] : %2zu\n", xs_data(&string_cpy), xs_size(&string_cpy));
-    printf("[%s] : %2zu\n", xs_data(&string), xs_size(&string));
+   xs str = *xs_new(&str, ":asd:aee:gdw:");
+    char *pch = xs_strtok(xs_data(&str), ":");
+    while (pch != NULL) {
+        printf ("%s ", pch);
+        pch = xs_strtok (NULL, ":");
+    }
+    printf("\n");
 }
