@@ -254,13 +254,42 @@ char *xs_strtok(char *x, const char *delimit)
     return x;
 }
 
+/* Experiment  for locality of reference */
+static void ori_cpy(char **dest, char **src)
+{
+    int len = strlen(*src);
+    *dest = (char*)malloc(sizeof(char) * (len + 1));
+    strncpy(*dest, *src, len+1);
+    return;
+}
+
 int main()
 {
-   xs str = *xs_new(&str, ":asd:aee:gdw:");
-    char *pch = xs_strtok(xs_data(&str), ":");
-    while (pch != NULL) {
-        printf ("%s ", pch);
-        pch = xs_strtok (NULL, ":");
+   /* Experiment*/
+    /* ori_cpy */
+    int n = 500000;
+    char *test1 = "kylehahakylehaha";
+    char *test2;
+    
+    
+    printf("ori_cpy\n");
+    while(n > 0) {
+        ori_cpy(&test2, &test1);
+        memset(test2, 0, sizeof(test2));
+        n--;
     }
-    printf("\n");
+    
+    
+    
+    /* xs_cpy */
+    /*
+    xs xs_test1 = *xs_new(&xs_test1, "kylehahakylehaha");
+    xs xs_test2;
+    printf("xs_cpy\n");
+    while(n > 0) {
+        xs_test2 = *xs_cpy(&xs_test2, &xs_test1);
+        n--;
+    }
+    */
+    
 }
