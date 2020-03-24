@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #define LIST_LEN 20
 #define EXP_TIME 10
 
@@ -190,20 +191,44 @@ list *op_merge_sort(list *start, int list_len, int thres)
     return merge(left, right);
 }
 
+unsigned int diff_in_ns(struct timespec t1, struct timespec t2)
+{
+    struct timespec result;
+    if ((t2.tv_nsec - t1.tv_nsec) < 0) {
+        result.tv_sec = t2.tv_sec - t1.tv_sec - 1;
+        result.tv_nsec = 1000000000 + t2.tv_nsec - t1.tv_nsec;
+    } else {
+        result.tv_sec = t2.tv_sec - t1.tv_sec;
+        result.tv_nsec = t2.tv_nsec - t1.tv_nsec;
+    }
+    return (unsigned int) result.tv_sec * 1000000000 + result.tv_nsec;
+}
+
 int main(){
+    FILE *fp = fopen("threshold.txt", "wb+");       // <- 這行怪怪的
+    
+    if (!fp) {
+        printf("error open file\n");
+        return 0;
+    }
     srand((unsigned)time(NULL));
 
-    for (int i = 0;i <2; i++) {
-        list **start ;
+   // for (int i = 0;i <EXP_TIME; i++) {
+        list **start;
         *start = NULL;
+        printf("fuck\n");
         for (int j = 0;j < LIST_LEN; j++) {
             insert_node(start, rand()%100);
         }
-        printf("before sort\n");
+        //struct timespec time_start, time_end;
+        //clock_gettime(CLOCK_REALTIME, &time_start);
+        printf("haha\n");
+        *start = op_merge_sort(*start, LIST_LEN, 3);
+        //clock_gettime(CLOCK_REALTIME, &time_end);
         print(*start);
-        *start = op_merge_sort(*start, LIST_LEN, 6);
-        print(*start);
+       // int diff = diff_in_ns(time_start, time_end);
+        //fprintf(fp, "3 %d\n" ,diff);
         delete_list(*start);
-    }
+   // }
     return 0;
 }
